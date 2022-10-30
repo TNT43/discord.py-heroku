@@ -155,7 +155,7 @@ class CustomClient(discord.Client):
         regex = '.*'
         for phrase in self.catch_phrases:
             regex += f'[{phrase}]?'
-        regex += "\s([0-9]+|\\ba\\b|\\ban\\b|\\bcouple\\b|\\bfew\\b)\s(second[s]?|minute[s]?|hour[s]?)?"
+        regex += "\s([0-9]+|\\ba\\b|\\ban\\b|\\bcouple\\b|\\bfew\\b)\s?(second[s]?|minute[s]?|hour[s]?)?"
         print('???')
         print(regex)
         print('???')
