@@ -155,7 +155,7 @@ class CustomClient(discord.Client):
         regex = '.*'
         for phrase in self.catch_phrases:
             regex += f'[{phrase}]?'
-        regex += "\s([0-9]+|\\ba\\b|\\ban\\b|\\bcouple\\b|\\bfew\\b)\s?(second[s]?|minute[s]?|hour[s]?)?"
+        regex += "\s([0-9]+|\\ba\\b|\\ban\\b|\\bcouple\\b|\\bfew\\b)\s?(sec[ond]?[s]?|min[ute]?[s]?|hour[s]?)?"
         print('???')
         print(regex)
         print('???')
@@ -166,6 +166,9 @@ class CustomClient(discord.Client):
             try:
                 wait_time = int(results.group(1))
             except Exception as e: # user type a or an
+                if not results.group(2):
+                    print("oopsies dasies :\\")
+                    return
                 print(results.group(1))
                 if "couple" in results.group(1) or "few" in results.group(1):
                     wait_time = 2
@@ -175,9 +178,9 @@ class CustomClient(discord.Client):
             
             if(results.group(2)):
                 # if(results.groups(1) == "seconds"): do nothing 
-                if(results.group(2) == "minutes" or results.group(2) == "minute"):
+                if re.search("min[ute]?[s]?", results.group(2)):
                     wait_time = wait_time * 60
-                if(results.group(2) == "hours" or results.group(2) == "hour"):
+                if re.search("hour[s]?", results.group(2)):
                     wait_time = wait_time * 60 * 60
             else: # we assume that saying nothing means minutes
                 wait_time = wait_time * 60 
