@@ -1,20 +1,39 @@
-import discord
+# bot.py
 import os
-from discord.ext import commands
 
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
+import discord
+import re
+import threading, time
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+class CustomClient(discord.Client):
 
-@bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user.name}({bot.user.id})')
+    def handle_message(self, message):
+        print('welcome')
+        if message.author == client.user:
+            return
+        print(f'my message is= [{message.content}]')
+        results = re.search(".*[give me]? [like]?([0-9]+)(seconds|minutes|hours)?", message.content)
+        # returns a tuple. First index is full string. Every index after is a captured string
+        if results:
+            wait_time = int(results.group(1))
+            if(results.group(2)):
+                # if(results.groups(1) == "seconds"): do nothing 
+                if(results.group(2) == "minutes"):
+                    wait_time = wait_time * 60
+                if(results.group(2) == "hours"):
+                    wait_time = wait_time * 60 * 60
+            
+            time.sleep(wait_time)
+            print(':3')
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send('pong')
+    async def on_ready(self):
+        print(f'{self.user} has connected to Discord!')
 
+    async def on_message(self, message):
+        thread = threading.Thread(target=self.handle_message, args=(message,))
+        thread.start()
+        
 if __name__ == '__main__':
-    bot.run(os.getenv('DISCORD_TOKEN'))
+    client = CustomClient(intents=discord.Intents.all())
+    client.run(os.getenv('DISCORD_TOKEN'))
+
