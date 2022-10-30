@@ -10,7 +10,7 @@ class CustomClient(discord.Client):
 
     async def send_reminder(self, delayIn, message):
         await asyncio.sleep(delay=delayIn)
-        await message.channel.send(":3")
+        await message.channel.send(f"{message.author.mention} hey where are you times up :3")
 
     async def on_ready(self):
         print(f'{self.user} has connected to Discord!')
@@ -30,6 +30,8 @@ class CustomClient(discord.Client):
                     wait_time = wait_time * 60
                 if(results.group(2) == "hours"):
                     wait_time = wait_time * 60 * 60
+            else: # we assume that saying nothing means minutes
+                wait_time = wait_time * 60 
         asyncio.create_task(self.send_reminder(wait_time, message))
             
             
