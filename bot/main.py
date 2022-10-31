@@ -1,4 +1,5 @@
 # bot.py
+from multiprocessing.connection import wait
 import os
 
 import discord
@@ -6,16 +7,52 @@ import re
 import threading, time
 import asyncio
 from random import randrange
+NUMWORDS = {}
+units = [
+"zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+"nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+"sixteen", "seventeen", "eighteen", "nineteen",
+]
+
+tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+scales = ["hundred", "thousand", "million", "billion", "trillion"]
+
+all_numwords = units + tens + scales
+all_numwords = ["\\b" + word + "\\b" for word in all_numwords if word != '']
+NUMWORDS["and"] = (1, 0)
+for idx, word in enumerate(units):    NUMWORDS[word] = (1, idx)
+for idx, word in enumerate(tens):     NUMWORDS[word] = (1, idx * 10)
+for idx, word in enumerate(scales):   NUMWORDS[word] = (10 ** (idx * 3 or 2), 0)
+
+def text2int(textnum, numwords={}):
+    current = result = 0
+    for word in textnum.split():
+        if word not in numwords:
+          raise Exception("Illegal word: " + word)
+
+        scale, increment = numwords[word]
+        current = current * scale + increment
+        if scale > 100:
+            result += current
+            current = 0
+
+    return result + current
 
 class CustomClient(discord.Client):
 
     catch_phrases = {
         "give me like",
+        "give me a",
         "give me", 
         "ill be",
         "Ill be",
+        "ill be a",
+        "Ill be a",
         "i'll be",
+        "i'll be a",
         "I'll be",
+        "I'll be a",
         "i'll be like",
         "I'll be like",
         "ill be like",
@@ -139,10 +176,20 @@ class CustomClient(discord.Client):
         "┌( ◕ 益 ◕ )ᓄ",
     ]
 
+    message_queue = []
+
     async def send_reminder(self, delayIn, message):
+        status_tuple = (message.author, message.created_at, delayIn)
+        self.message_queue.append(status_tuple)
+        print("Current Q status")
+        for user, sendtime, waittime in self.message_queue:
+            print(f"User: {user} sent at: {sendtime} waiting time: {waittime} ")
+            
         print(f"printing in delay:{delayIn}")
+        await message.channel.send(f"I'll be waiting :D")
         await asyncio.sleep(delay=delayIn)
         await message.channel.send(f"{message.author.mention} hey where are you times up {self.fun_faces[randrange(len(self.fun_faces))]}")
+        self.message_queue.remove(status_tuple)
 
     async def on_ready(self):
         print(f'{self.user} has connected to Discord!')
@@ -152,39 +199,57 @@ class CustomClient(discord.Client):
         if message.author == client.user:
             return
         print(f'my message is= [{message.content}]')
-        regex = '.*'
+        base_regex = '.*('
         for phrase in self.catch_phrases:
-            regex += f'[{phrase}]?'
-        regex += "\s([0-9]+|\\ba\\b|\\ban\\b|\\bcouple\\b|\\bfew\\b)\s?(sec[ond]?[s]?|min[ute]?[s]?|hour[s]?)?"
-        print('???')
-        print(regex)
-        print('???')
-        results = re.search(regex, message.content)
-        # returns a tuple. First index is full string. Every index after is a captured string
-        if results:
-            wait_time = None
-            try:
-                wait_time = int(results.group(1))
-            except Exception as e: # user type a or an
-                if not results.group(2):
-                    print("oopsies dasies :\\")
-                    return
-                print(results.group(1))
-                if "couple" in results.group(1) or "few" in results.group(1):
-                    wait_time = 2
-                else:
-                    wait_time = 1
-            
-            
-            if(results.group(2)):
+            base_regex += f'{phrase}|'
+        base_regex = base_regex[:-1] + ")"
+        unit_regex = "(seconds|second|sec|minutes|minute|min|hours|hour)?"
+
+        def get_true_time_seconds(initial_time, unit_group):
+            if(unit_group):
                 # if(results.groups(1) == "seconds"): do nothing 
-                if re.search("min[ute]?[s]?", results.group(2)):
-                    wait_time = wait_time * 60
-                if re.search("hour[s]?", results.group(2)):
-                    wait_time = wait_time * 60 * 60
+                if re.search("minutes|minute|min", unit_group):
+                    initial_time = initial_time * 60
+                if re.search("hours|hour?", unit_group):
+                    initial_time = initial_time * 60 * 60
             else: # we assume that saying nothing means minutes
-                wait_time = wait_time * 60 
+                initial_time = initial_time * 60 
+            return initial_time
+
+        regex = base_regex + f"\s([0-9]+)\s?" + unit_regex
+        results = re.search(regex, message.content)
+        #print(regex)
+        if results:
+            print('======================ENTRY 1 ========================')
+            wait_time = int(results.group(2))
+            wait_time = get_true_time_seconds(wait_time, results.group(3))
             asyncio.create_task(self.send_reminder(wait_time, message))
+            return
+
+        regex = base_regex + "\s(an|a|couple|few)\s?" + unit_regex
+        results = re.search(regex, message.content)
+        #print(regex)
+        if results:
+            print('======================ENTRY 2 ========================')
+            if "couple" in results.group(2) or "few" in results.group(2):
+                wait_time = 2
+            else:
+                wait_time = 1
+            wait_time = get_true_time_seconds(wait_time, results.group(3))
+            asyncio.create_task(self.send_reminder(wait_time, message))
+            return
+        
+        regex = base_regex + "\s?(" + '|'.join(all_numwords) + ")\s?" + unit_regex
+        results = re.search(regex, message.content)
+        #print(regex)
+        if results:
+            print('======================ENTRY 3 ========================')
+            wait_time = text2int(results.group(2), NUMWORDS)
+            wait_time = get_true_time_seconds(wait_time, results.group(3))
+            asyncio.create_task(self.send_reminder(wait_time, message))
+            return
+
+        
             
             
 
