@@ -53,30 +53,6 @@ class CustomClient(discord.Client):
     # (ill be | give me)(back in | like)(a | an | wordNum | intNum) -> (i['’]?l?l?\s*be?|g?iv?e?\s*m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s*i?n?\b)?\s*(\ba\b|\ban\b|\bone\b|[0-9]+)
     # all of above + units (i['’]?l?l?\s*be?|g?iv?e?\s*m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s*i?n?\b)?\s*(\ba\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
     # add in (couple and few) (i['’]?l?l?\s?be?|g?iv?e?\s?m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s?i?n?\b)?\s*(\ba?\s?(c?o?u?p?l?e?\s*o?f?|f?e?w?)\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
-    catch_phrases = {
-        "give me like",
-        "give me a",
-        "give me", 
-        "ill be",
-        "Ill be",
-        "ill be a",
-        "Ill be a",
-        "i'll be",
-        "i'll be a",
-        "I'll be",
-        "I'll be a",
-        "I’ll be a"
-        "i'll be like",
-        "I'll be like",
-        "I’ll be like"
-        "ill be like",
-        "Ill be like",
-        "Ill be back in",
-        "ill be back in",
-        "i'll be back in",
-        "I'll be back in",
-        "I’ll be back in"
-    }
 
     fun_faces = [
         "¯\_(ツ)_/¯",
@@ -207,8 +183,8 @@ class CustomClient(discord.Client):
         if message.author == client.user:
             return
         print(f'my message is= [{message.content}]')
-        #(i['’]?l?l?\s?be?|g?iv?e?\s?m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s?i?n?\b)?\s*(\ba?\s?(c?o?u?p?l?e?\s*o?f?|f?e?w?)\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
-        base_regex = f"(i['’]?l?l?\s*be?|g?iv?e?\s*m{{1,2}}e)\s*(\\bl?i?ke?\\b|\\bbac?k?\s*i?n?\\b)?\s*(\\ba\s*(\\bco?u?p?l?e?\s*o?f?\\b|\\bf?e?w?\\b){{0,1}}\\b|\\ban\\b|{'|'.join(all_numwords)}|[0-9]+)\s*(\\bse?c?o?n?d?s?\\b|\\bmi?n?u?t?e?s?\\b|\\bho?u?r?s?\\b)?"
+       
+        base_regex = f"(i['’]?l?l?\s*be?|g?iv?e?\s*m{{1,2}}e)\s*(\\bl?i?ke?\\b|\\bbac?k?\s*i?n?\\b)?\s*(\\ba\s*(\\bco?u?p?l?e?\s*o?f?\\b|\\bf?e?w?\\b){{0,1}}\\b|\\ban\\b|{'|'.join(all_numwords)}|[0-9]+\.?[0-9]*)\s*(\\bse?c?o?n?d?s?\\b|\\bmi?n?u?t?e?s?\\b|\\bho?u?r?s?\\b)?"
 
         print(base_regex)
         
@@ -224,6 +200,10 @@ class CustomClient(discord.Client):
             return initial_time
 
         results = re.search(base_regex, message.content, re.IGNORECASE)
+
+        if not results:
+            return
+        
         print("==============primary regex groups==============")
         print(results.group(1))
         print(results.group(2))
@@ -231,12 +211,11 @@ class CustomClient(discord.Client):
         print(results.group(4))
         print(results.group(5))
         print("==============primary regex groups==============")
-        if not results:
-            return
 
         wait_time = None
         try:
-            wait_time = int(results.group(3))
+            wait_time = float(results.group(3))
+            wait_time = (int(round(wait_time)))
         except Exception as e:
             if results.group(3):
                 print(f"Secondary search on \"{results.group(3).rstrip()}\"")
