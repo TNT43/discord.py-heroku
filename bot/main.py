@@ -1,4 +1,6 @@
 # bot.py
+from curses import beep
+from email.mime import base
 from multiprocessing.connection import wait
 import os
 
@@ -43,6 +45,14 @@ class CustomClient(discord.Client):
 
     # g?i?v?e?\s?m?e?\s?l?i?k?e?\s?([0-9]+)
     # i?'?l?l?\s?b?e?\s?(l?i?k?e?|\ban\b|\ba\b)\s?([0-9]+)
+
+    # ill be -> i['’]?l?l?\s*be?
+    # give me (and gimme) -> g?iv?e?\s*m{1,2}e
+    # back in OR like -> (\bl?i?ke?\b|\bbac?k?\s*i?n?\b)
+    # (ill be | give me)(back in | like) -> (i['’]?l?l?\s*be?|g?iv?e?\s*m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s*i?n?\b)
+    # (ill be | give me)(back in | like)(a | an | wordNum | intNum) -> (i['’]?l?l?\s*be?|g?iv?e?\s*m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s*i?n?\b)?\s*(\ba\b|\ban\b|\bone\b|[0-9]+)
+    # all of above + units (i['’]?l?l?\s*be?|g?iv?e?\s*m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s*i?n?\b)?\s*(\ba\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
+    # add in (couple and few) (i['’]?l?l?\s?be?|g?iv?e?\s?m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s?i?n?\b)?\s*(\ba?\s?(c?o?u?p?l?e?\s*o?f?|f?e?w?)\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
     catch_phrases = {
         "give me like",
         "give me a",
@@ -68,13 +78,6 @@ class CustomClient(discord.Client):
         "I’ll be back in"
     }
 
-    return_phrases = {
-        "I fucking hate you where are you",
-        "Please come back I miss you",
-        "Hey where are you times up", 
-        "Remember when you said you'd be back.. I remember",
-        "Cum on me",
-    }
     fun_faces = [
         "¯\_(ツ)_/¯",
         "( ͡~ ͜ʖ ͡°)",
@@ -182,7 +185,7 @@ class CustomClient(discord.Client):
     ]
 
     message_queue = []
-
+    # god regex string no touch pls "(i['’]?l?l?\s?be?|g?iv?e?\s?m{{1,2}}e)\s?(\\bl?i?ke?\\b|\\bbac?k?\s?i?n?\\b)?\s?(\\ba\\b|\\ban\\b|{'|'.join(all_numwords)}|[0-9]+)\s?(\\bse?c?o?n?d?s?\\b|\\bmi?n?u?t?e?s?\\b|\\bho?u?r?s?\\b)?"
     async def send_reminder(self, delayIn, message):
         status_tuple = (message.author, message.created_at, delayIn)
         self.message_queue.append(status_tuple)
@@ -204,60 +207,58 @@ class CustomClient(discord.Client):
         if message.author == client.user:
             return
         print(f'my message is= [{message.content}]')
-        base_regex = '.*('
-        for phrase in self.catch_phrases:
-            base_regex += f'{phrase}|'
-        base_regex = base_regex[:-1] + ")"
-        unit_regex = "(seconds|second|sec|minutes|minute|min|hours|hour)?"
+        #(i['’]?l?l?\s?be?|g?iv?e?\s?m{1,2}e)\s*(\bl?i?ke?\b|\bbac?k?\s?i?n?\b)?\s*(\ba?\s?(c?o?u?p?l?e?\s*o?f?|f?e?w?)\b|\ban\b|\bone\b|[0-9]+)\s*(\bse?c?o?n?d?s?\b|\bmi?n?u?t?e?s?\b|\bho?u?r?s?\b)?
+        base_regex = f"(i['’]?l?l?\s*be?|g?iv?e?\s*m{{1,2}}e)\s*(\\bl?i?ke?\\b|\\bbac?k?\s*i?n?\\b)?\s*(\\ba\s*(\\bco?u?p?l?e?\s*o?f?\\b|\\bf?e?w?\\b){{0,1}}\\b|\\ban\\b|{'|'.join(all_numwords)}|[0-9]+)\s*(\\bse?c?o?n?d?s?\\b|\\bmi?n?u?t?e?s?\\b|\\bho?u?r?s?\\b)?"
 
+        print(base_regex)
+        
         def get_true_time_seconds(initial_time, unit_group):
             if(unit_group):
                 # if(results.groups(1) == "seconds"): do nothing 
-                if re.search("minutes|minute|min", unit_group):
+                if re.search("\\bmi?n?u?t?e?s?\\b", unit_group, re.IGNORECASE):
                     initial_time = initial_time * 60
-                if re.search("hours|hour?", unit_group):
+                if re.search("\\bho?u?r?s?\\b", unit_group, re.IGNORECASE):
                     initial_time = initial_time * 60 * 60
             else: # we assume that saying nothing means minutes
                 initial_time = initial_time * 60 
             return initial_time
 
-        regex = base_regex + f"\s([0-9]+)\s?" + unit_regex
-        results = re.search(regex, message.content, re.IGNORECASE)
-        #print(regex)
-        if results:
-            print('======================ENTRY 1 ========================')
-            wait_time = int(results.group(2))
-            wait_time = get_true_time_seconds(wait_time, results.group(3))
-            asyncio.create_task(self.send_reminder(wait_time, message))
+        results = re.search(base_regex, message.content, re.IGNORECASE)
+        print("==============primary regex groups==============")
+        print(results.group(1))
+        print(results.group(2))
+        print(results.group(3))
+        print(results.group(4))
+        print(results.group(5))
+        print("==============primary regex groups==============")
+        if not results:
             return
 
-        regex = base_regex + "\s(an|a|couple|few)\s?" + unit_regex
-        results = re.search(regex, message.content, re.IGNORECASE)
-        #print(regex)
-        if results:
-            print('======================ENTRY 2 ========================')
-            if "couple" in results.group(2) or "few" in results.group(2):
-                wait_time = 2
-            else:
-                wait_time = 1
-            wait_time = get_true_time_seconds(wait_time, results.group(3))
-            asyncio.create_task(self.send_reminder(wait_time, message))
-            return
-        
-        regex = base_regex + "\s?(" + '|'.join(all_numwords) + ")\s?" + unit_regex
-        results = re.search(regex, message.content, re.IGNORECASE)
-        #print(regex)
-        if results:
-            print('======================ENTRY 3 ========================')
-            wait_time = text2int(results.group(2), NUMWORDS)
-            wait_time = get_true_time_seconds(wait_time, results.group(3))
-            asyncio.create_task(self.send_reminder(wait_time, message))
-            return
+        wait_time = None
+        try:
+            wait_time = int(results.group(3))
+        except Exception as e:
+            if results.group(3):
+                print(f"Secondary search on \"{results.group(3).rstrip()}\"")
+                sec_regex = "(\\ba\s*(\\bco?u?p?l?e?\s*o?f?\\b|\\bf?e?w?\\b)|\\ban\\b)"
+                sec_results = re.search(sec_regex, results.group(3).rstrip(), re.IGNORECASE)
+                if sec_results:
+                    print("==============secondary regex groups==============")
+                    print(sec_results.group(1))
+                    print(sec_results.group(2))
+                    print("==============secondary regex groups==============")
 
-        
+                    if sec_results.group(2):
+                        wait_time = 2
+                    else:
+                        wait_time = 1
+                else:
+                    wait_time = text2int(results.group(3), NUMWORDS)
+    
+        wait_time = get_true_time_seconds(wait_time, results.group(5))
+                
+        asyncio.create_task(self.send_reminder(wait_time, message))
             
-            
-
 
 if __name__ == '__main__':
     client = CustomClient(intents=discord.Intents.all())
