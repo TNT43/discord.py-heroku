@@ -41,6 +41,8 @@ def text2int(textnum, numwords={}):
 
 class CustomClient(discord.Client):
 
+    # g?i?v?e?\s?m?e?\s?l?i?k?e?\s?([0-9]+)
+    # i?'?l?l?\s?b?e?\s?(l?i?k?e?|\ban\b|\ba\b)\s?([0-9]+)
     catch_phrases = {
         "give me like",
         "give me a",
@@ -53,14 +55,17 @@ class CustomClient(discord.Client):
         "i'll be a",
         "I'll be",
         "I'll be a",
+        "I’ll be a"
         "i'll be like",
         "I'll be like",
+        "I’ll be like"
         "ill be like",
         "Ill be like",
         "Ill be back in",
         "ill be back in",
         "i'll be back in",
-        "I'll be back in"
+        "I'll be back in",
+        "I’ll be back in"
     }
 
     return_phrases = {
@@ -217,7 +222,7 @@ class CustomClient(discord.Client):
             return initial_time
 
         regex = base_regex + f"\s([0-9]+)\s?" + unit_regex
-        results = re.search(regex, message.content)
+        results = re.search(regex, message.content, re.IGNORECASE)
         #print(regex)
         if results:
             print('======================ENTRY 1 ========================')
@@ -227,7 +232,7 @@ class CustomClient(discord.Client):
             return
 
         regex = base_regex + "\s(an|a|couple|few)\s?" + unit_regex
-        results = re.search(regex, message.content)
+        results = re.search(regex, message.content, re.IGNORECASE)
         #print(regex)
         if results:
             print('======================ENTRY 2 ========================')
@@ -240,7 +245,7 @@ class CustomClient(discord.Client):
             return
         
         regex = base_regex + "\s?(" + '|'.join(all_numwords) + ")\s?" + unit_regex
-        results = re.search(regex, message.content)
+        results = re.search(regex, message.content, re.IGNORECASE)
         #print(regex)
         if results:
             print('======================ENTRY 3 ========================')
